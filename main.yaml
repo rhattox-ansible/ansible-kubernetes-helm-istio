@@ -1,0 +1,8 @@
+- name: Istio Helm Chart Installation
+  hosts: localhost
+  become: false
+  gather_facts: true
+  vars:
+    ansible_python_interpreter: /opt/ansible-venv/bin/python
+  roles:
+    - istio

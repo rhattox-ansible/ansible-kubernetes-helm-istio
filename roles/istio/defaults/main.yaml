@@ -1,0 +1,4 @@
+istio_namespace: istio-system
+istio_operator_namespace: istio-operator
+istio_chart_repo: https://istio-release.storage.googleapis.com/charts
+istio_version: "1.26.0"
