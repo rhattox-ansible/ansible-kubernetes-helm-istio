@@ -3,6 +3,10 @@
     name: istio
     repo_url: "{{ istio_chart_repo }}"
 
+- name: Update Helm
+  ansible.builtin.command: helm repo update
+  changed_when: false
+
 - name: Install istio-base (CRDs)
   kubernetes.core.helm:
     name: istio-base
@@ -11,6 +15,7 @@
     create_namespace: true
     chart_version: "{{ istio_version }}"
     wait: true
+    timeout: 1m
 
 - name: Install istiod (control plane)
   kubernetes.core.helm:
@@ -23,6 +28,7 @@
     values:
       global:
         istioNamespace: "{{ istio_namespace }}"
+    timeout: 1m
 
 - name: Install Istio CNI (optional)
   kubernetes.core.helm:
@@ -32,12 +38,52 @@
     create_namespace: true
     chart_version: "{{ istio_version }}"
     wait: true
+    timeout: 1m
 
-- name: Install istio-ingressgateway
+- name: Install istio gateway
   kubernetes.core.helm:
-    name: istio-ingress
+    name: istio-ingressgateway
     chart_ref: istio/gateway
-    release_namespace: "{{ istio_namespace }}"
+    release_namespace: "istio-ingress"
     create_namespace: true
     chart_version: "{{ istio_version }}"
     wait: true
+    values:
+      service:
+        type: NodePort
+        ports:
+          - name: http
+            port: 80
+            targetPort: 8080
+            nodePort: 30080
+          - name: https
+            port: 443
+            targetPort: 8443
+            nodePort: 30443
+    timeout: 10m
+
+- name: Add kiali Helm repository
+  kubernetes.core.helm_repository:
+    name: kiali
+    repo_url: "{{ kiali_chart_repo }}"
+
+- name: Update Helm
+  ansible.builtin.command: helm repo update
+  changed_when: false
+
+- name: Install Kiali Server
+  kubernetes.core.helm:
+    name: kiali-operator
+    chart_ref: kiali/kiali-operator
+    release_namespace: "kiali-operator"
+    create_namespace: true
+    chart_version: "{{ kiali_server_version }}"
+    wait: true
+    values:
+      cr:
+        create: true
+        namespace: istio-system
+        spec:
+          auth:
+            strategy: "anonymous"
+    timeout: 1m
